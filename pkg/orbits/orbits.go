@@ -1,12 +1,11 @@
 package orbits
 
 import (
-   "io/ioutil"
-   "go-orbits/pkg/io"
+	"go-orbits/pkg/io"
+	"io/ioutil"
 
-   "gopkg.in/yaml.v3"
+	"gopkg.in/yaml.v3"
 )
-
 
 // structure with binary configuration
 type Binary struct {
@@ -20,6 +19,11 @@ type Binary struct {
    KickStrengthDistribution string `yaml:"kick_distribution"`
    KickDirection string `yaml:"kick_direction"`
    ReduceByFallback bool `yaml:"reduce_by_fallback"`
+
+   SigmaStrength float64 `yaml:"kick_sigma"`
+   NumberOfCases int `yaml:"number_of_cases"`
+
+   W []float64
 }
 
 
@@ -64,4 +68,13 @@ func (b *Binary) convertoCGS () {
    b.Period = b.Period * 24 * 3600.0
    b.MCO = b.MCO * Msun
 
+}
+
+
+// create arrays with asymmetric kicks
+func (b *Binary) ComputeKicks () {
+
+   // Strength of kick based on config option
+   if b.KickStrengthDistribution == "Maxwell" {
+   }
 }

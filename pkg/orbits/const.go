@@ -8,6 +8,10 @@ const (
    // seconds in a year
    SecYer = 24 * 60 * 60 * 365.25
 
+
+   // km to cm
+   km2cm = 1e5
+
    mu_sun = 1.3271244e26
 
    Msun = mu_sun / StandardCgrav

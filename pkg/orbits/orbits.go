@@ -1,9 +1,12 @@
 package orbits
 
 import (
+
 	"go-orbits/pkg/io"
 	"io/ioutil"
 	"math"
+	"strconv"
+   "os"
 
 	"gonum.org/v1/gonum/stat/distuv"
 	"gopkg.in/yaml.v3"
@@ -42,6 +45,8 @@ type Binary struct {
 
 // read information on binary and kicks from YAML file
 func (b *Binary) parseYAML (filename string) error {
+
+   io.LogInfo("ORBITS - orbits.go - parseYAML", "reading configuration from file")
   
    // read YAML data file into bytes 
    data, err := ioutil.ReadFile(filename)
@@ -58,6 +63,8 @@ func (b *Binary) parseYAML (filename string) error {
 // it returns the Binary object
 func InitBinary (filename string) Binary {
 
+   io.LogInfo("ORBITS - orbits.go - InitBinary", "initializing binary")
+
    // load binary into memory
    var binary Binary
    err := binary.parseYAML(filename)
@@ -65,15 +72,14 @@ func InitBinary (filename string) Binary {
       io.LogError("ORBITS - orbits.go - InitBinary", "unable to parse YAML file at start")
    }
 
-   // use CGS for this
-   binary.convertoCGS()
-
    return binary
 }
 
 
 // input should be in Msun / Rsun / Lsun and so on.. here we change it to CGS
-func (b *Binary) convertoCGS () {
+func (b *Binary) ConvertoCGS () {
+
+   io.LogInfo("ORIBTS - orbits.go - ConvertCGS", "converting to CGS units")
 
    b.M1 = b.M1 * Msun
    b.M2 = b.M2 * Msun
@@ -81,11 +87,17 @@ func (b *Binary) convertoCGS () {
    b.Period = b.Period * 24 * 3600.0
    b.MCO = b.MCO * Msun
 
+   for k, w := range b.W {
+      b.W[k] = w * km2cm
+   }
+
 }
 
 
 // create slices of asymmetric kicks following a given probability density function
 func (b *Binary) ComputeKicks () {
+
+   io.LogInfo("ORBITS - orbits.go - ComputeKicks", "computing momentum kicks")
 
    // Strength of kick based on config option
    if b.KickStrengthDistribution == "Maxwell" {
@@ -122,5 +134,42 @@ func (b *Binary) ComputeKicks () {
    } else {
       io.LogError("ORBITS - orbits.go - ComputeKicks", "unknown KickDirection")
    }
+
+}
+
+
+// compute orbital parameters assuming linear momentum conservation before and just after
+// a momentum kick
+func (b *Binary) OrbitsAfterKicks (verbose bool) {
+   if verbose {
+      msg := "calculating post core-collapse orbits for: " + strconv.Itoa(b.NumberOfCases) + " kicks"
+      io.LogInfo("ORBITS - orbits.go - OrbitAfterKicks", msg)
+   }
+}
+
+
+// save kick info to file
+func (b *Binary) SaveKicks (filename string) {
+
+   io.LogInfo("ORBITS - orbits.go - SaveKicks", "saving kicks information")
+
+   // create file
+   f, err := os.Create(filename)
+   if err != nil {
+      io.LogError("error writing to file", "open file")
+   }
+
+   // remember to close the file
+   defer f.Close()
+
+   // write rows of different natal kicks
+   for k, w := range b.W {
+      str := strconv.FormatFloat(w, 'f', 5, 64) + " " + strconv.FormatFloat(b.Theta[k], 'f', 5, 64) + " " + strconv.FormatFloat(b.Phi[k], 'f', 5, 64) + "\n"
+      _, err := f.WriteString(str)
+      if err != nil {
+         io.LogError("error writing to file", "write error")
+      }
+   }
+
 
 }

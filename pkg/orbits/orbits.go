@@ -1,9 +1,11 @@
 package orbits
 
 import (
+   "math"
 	"go-orbits/pkg/io"
 	"io/ioutil"
 
+	"gonum.org/v1/gonum/stat/distuv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -49,7 +51,7 @@ func InitBinary (filename string) Binary {
    var binary Binary
    err := binary.parseYAML(filename)
    if err != nil {
-      io.LogError("ORBITS - orbits.go - start", "unable to parse YAML file at start")
+      io.LogError("ORBITS - orbits.go - InitBinary", "unable to parse YAML file at start")
    }
 
    // use CGS for this
@@ -71,10 +73,20 @@ func (b *Binary) convertoCGS () {
 }
 
 
-// create arrays with asymmetric kicks
+// create slices of asymmetric kicks following a given probability density function
 func (b *Binary) ComputeKicks () {
 
    // Strength of kick based on config option
    if b.KickStrengthDistribution == "Maxwell" {
+
+      // Maxwell distribution is just a chi-squared distribution with 3 d.o.f., k=3
+      // therefore, just use inverse sampling for the chi-squared and then correct values with
+      // normalization constant
+      maxwell := distuv.ChiSquared{3, nil}
+      for k := 1; k <= b.NumberOfCases; k++ {
+         b.W = append(b.W, b.SigmaStrength * math.Sqrt(maxwell.Rand()))
+      }
+   } else {
+      io.LogError("ORBITS - orbits.go - ComputeKicks", "unknown KickStrengthDistribution")
    }
 }

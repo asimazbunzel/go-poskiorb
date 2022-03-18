@@ -40,6 +40,15 @@ type Binary struct {
    W []float64
    Phi []float64
    Theta []float64
+
+   IndexBounded []int
+   WBounded []float64
+   ThetaBounded []float64
+   PhiBounded []float64
+   SeparationBounded []float64
+   EccentricityBounded []float64
+   PeriodBounded []float64
+
 }
 
 
@@ -79,7 +88,7 @@ func InitBinary (filename string) Binary {
 // input should be in Msun / Rsun / Lsun and so on.. here we change it to CGS
 func (b *Binary) ConvertoCGS () {
 
-   io.LogInfo("ORIBTS - orbits.go - ConvertCGS", "converting to CGS units")
+   io.LogInfo("ORBITS - orbits.go - ConvertCGS", "converting to CGS units")
 
    b.M1 = b.M1 * Msun
    b.M2 = b.M2 * Msun
@@ -89,6 +98,28 @@ func (b *Binary) ConvertoCGS () {
 
    for k, w := range b.W {
       b.W[k] = w * km2cm
+   }
+
+}
+
+func (b *Binary) ConvertoAstro () {
+
+   io.LogInfo("ORBITS - orbits.go - ConvertoAstro", "converting to Astro units (Msun, Rsun, etc)")
+
+   b.M1 = b.M1 / Msun
+
+   b.M2 = b.M2 / Msun
+   b.Separation = b.Separation / Rsun
+   b.Period = b.Period / 24 / 3600.0
+   b.MCO = b.MCO / Msun
+
+   for k, w := range b.W {
+      b.W[k] = w / km2cm
+   }
+
+   for k,w := range b.WBounded {
+      b.WBounded[k] = w / km2cm
+      b.SeparationBounded[k] = b.SeparationBounded[k] / Rsun
    }
 
 }
@@ -105,13 +136,13 @@ func (b *Binary) ComputeKicks () {
       // therefore, just use inverse sampling for the chi-squared and then correct values with
       // normalization constant
       maxwell := distuv.ChiSquared{3, nil}
-      for k := 1; k <= b.NumberOfCases; k++ {
+      for k := 0; k <= b.NumberOfCases; k++ {
          b.W = append(b.W, b.SigmaStrength * math.Sqrt(maxwell.Rand()))
       }
    } else if b.KickStrengthDistribution == "Uniform" {
       // Uniform distribution needs min & max values as input
       uniform := distuv.Uniform{b.MinKickStrength, b.MaxKickStrength, nil}
-      for k := 1; k <= b.NumberOfCases; k++ {
+      for k := 0; k <= b.NumberOfCases; k++ {
          b.W = append(b.W, uniform.Rand())
       }
    } else {
@@ -122,13 +153,13 @@ func (b *Binary) ComputeKicks () {
    if b.KickDirection == "Uniform" {
       // phi distribution must be between 0 and 2pi
       uniform_phi := distuv.Uniform{b.MinPhi * math.Phi, b.MaxPhi * math.Phi, nil}
-      for k := 1; k <= b.NumberOfCases; k++ {
+      for k := 0; k <= b.NumberOfCases; k++ {
          b.Phi = append(b.Phi, uniform_phi.Rand())
       }
 
       // theta distribution must be between 0 and pi, but remember that is modulated by cosine
       uniform_theta := distuv.UnitUniform
-      for k := 1; k <= b.NumberOfCases; k++ {
+      for k := 0; k <= b.NumberOfCases; k++ {
          b.Theta = append(b.Theta, math.Acos(2 * uniform_theta.Rand() - 1))
       }
    } else {
@@ -149,7 +180,7 @@ func (b *Binary) OrbitsAfterKicks (verbose bool) {
    // velocity pre-SN
    vPre := math.Sqrt(StandardCgrav * (b.M1 + b.M2) / b.Separation)
    
-   for k := 0; k <= b.NumberOfCases-1; k++ {
+   for k := 0; k <= b.NumberOfCases; k++ {
 
       // kick velocity projected to (x,y,z)
       // wx := b.W[k] * math.Cos(b.Phi[k]) * math.Sin(b.Theta[k])
@@ -163,7 +194,19 @@ func (b *Binary) OrbitsAfterKicks (verbose bool) {
       if epost < 0 || epost > 1 {
          fmt.Println("unbind binary for case ", k)
       } else {
+
+         // if here, binary is bounded after momentum kick
          fmt.Println("bounded binary for case", k)
+
+         b.IndexBounded = append(b.IndexBounded, k)
+         b.WBounded = append(b.WBounded, b.W[k])
+         b.ThetaBounded = append(b.ThetaBounded , b.Theta[k])
+         b.PhiBounded = append(b.PhiBounded, b.Phi[k])
+
+         b.SeparationBounded = append(b.SeparationBounded, apost)
+         b.EccentricityBounded = append(b.EccentricityBounded, epost)
+         // kepler needed here
+         // b.PeriodBounded = 
       }
 
    }
@@ -187,12 +230,11 @@ func (b *Binary) SaveKicks (filename string) {
 
    // write rows of different natal kicks
    for k, w := range b.W {
-      str := strconv.FormatFloat(w, 'f', 5, 64) + " " + strconv.FormatFloat(b.Theta[k], 'f', 5, 64) + " " + strconv.FormatFloat(b.Phi[k], 'f', 5, 64) + "\n"
+      str := strconv.FormatFloat(w, 'f', 5, 64) + " " + strconv.FormatFloat(b.Theta[k], 'f', 5, 64) + " " + strconv.FormatFloat(b.Phi[k], 'f', 5, 64) + " "
       _, err := f.WriteString(str)
       if err != nil {
          io.LogError("error writing to file", "write error")
       }
    }
-
 
 }

@@ -1,12 +1,12 @@
 package orbits
 
 import (
-
+	"fmt"
 	"go-orbits/pkg/io"
 	"io/ioutil"
 	"math"
+	"os"
 	"strconv"
-   "os"
 
 	"gonum.org/v1/gonum/stat/distuv"
 	"gopkg.in/yaml.v3"
@@ -139,12 +139,35 @@ func (b *Binary) ComputeKicks () {
 
 
 // compute orbital parameters assuming linear momentum conservation before and just after
-// a momentum kick
+// a momentum kick using Kalogera 1996
 func (b *Binary) OrbitsAfterKicks (verbose bool) {
-   if verbose {
-      msg := "calculating post core-collapse orbits for: " + strconv.Itoa(b.NumberOfCases) + " kicks"
-      io.LogInfo("ORBITS - orbits.go - OrbitAfterKicks", msg)
+
+   msg := "calculating post core-collapse orbits for: " + strconv.Itoa(b.NumberOfCases) + " kicks"
+   io.LogInfo("ORBITS - orbits.go - OrbitAfterKicks", msg)
+
+
+   // velocity pre-SN
+   vPre := math.Sqrt(StandardCgrav * (b.M1 + b.M2) / b.Separation)
+   
+   for k := 0; k <= b.NumberOfCases-1; k++ {
+
+      // kick velocity projected to (x,y,z)
+      // wx := b.W[k] * math.Cos(b.Phi[k]) * math.Sin(b.Theta[k])
+      wy := b.W[k] * math.Cos(b.Theta[k])
+      wz := b.W[k] * math.Sin(b.Phi[k]) * math.Sin(b.Theta[k])
+
+      // eqs (3), (4) & (5)
+      apost := StandardCgrav * (b.MCO + b.M2) / (2 * StandardCgrav * (b.MCO + b.M2) / b.Separation - math.Pow(b.W[k],2) - math.Pow(vPre,2) - 2*wy * vPre)
+      epost := math.Sqrt(1 - (math.Pow(wz,2) + math.Pow(wy,2) + math.Pow(vPre,2) + 2*wy*vPre) * math.Pow(b.Separation,2) / (StandardCgrav * (b.MCO + b.M2) * apost))
+
+      if epost < 0 || epost > 1 {
+         fmt.Println("unbind binary for case ", k)
+      } else {
+         fmt.Println("bounded binary for case", k)
+      }
+
    }
+
 }
 
 

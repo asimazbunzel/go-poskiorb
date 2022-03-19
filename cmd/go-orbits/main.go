@@ -27,7 +27,14 @@ func main () {
    b.OrbitsAfterKicks(true)
 
    // save to file
-   b.SaveKicks("test.data")
+   b.SaveKicks("test_kicks.data")
+
+
+   // go back to astro units
+   b.ConvertoAstro()
+
+   // save orbits to a file
+   b.SaveBoundedOrbits("test_orbits.data")
 
    // end of computation
    io.LogInfo("MAIN - main.go - main", "exit code with success")

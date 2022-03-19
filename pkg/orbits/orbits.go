@@ -120,6 +120,7 @@ func (b *Binary) ConvertoAstro () {
    for k,w := range b.WBounded {
       b.WBounded[k] = w / km2cm
       b.SeparationBounded[k] = b.SeparationBounded[k] / Rsun
+      b.PeriodBounded[k] = b.PeriodBounded[k] / 24 / 3600.0
    }
 
 }
@@ -192,11 +193,11 @@ func (b *Binary) OrbitsAfterKicks (verbose bool) {
       epost := math.Sqrt(1 - (math.Pow(wz,2) + math.Pow(wy,2) + math.Pow(vPre,2) + 2*wy*vPre) * math.Pow(b.Separation,2) / (StandardCgrav * (b.MCO + b.M2) * apost))
 
       if epost < 0 || epost > 1 {
-         fmt.Println("unbind binary for case ", k)
+         if verbose {fmt.Println("unbind binary for case ", k)}
       } else {
 
          // if here, binary is bounded after momentum kick
-         fmt.Println("bounded binary for case", k)
+         if verbose {fmt.Println("bounded binary for case", k)}
 
          b.IndexBounded = append(b.IndexBounded, k)
          b.WBounded = append(b.WBounded, b.W[k])
@@ -206,7 +207,7 @@ func (b *Binary) OrbitsAfterKicks (verbose bool) {
          b.SeparationBounded = append(b.SeparationBounded, apost)
          b.EccentricityBounded = append(b.EccentricityBounded, epost)
          // kepler needed here
-         // b.PeriodBounded = 
+         b.PeriodBounded = append(b.PeriodBounded, AtoP(apost, b.M1, b.M2))
       }
 
    }
@@ -230,7 +231,42 @@ func (b *Binary) SaveKicks (filename string) {
 
    // write rows of different natal kicks
    for k, w := range b.W {
-      str := strconv.FormatFloat(w, 'f', 5, 64) + " " + strconv.FormatFloat(b.Theta[k], 'f', 5, 64) + " " + strconv.FormatFloat(b.Phi[k], 'f', 5, 64) + " "
+      str := strconv.Itoa(k) + " "
+      str += strconv.FormatFloat(w, 'f', 5, 64) + " "
+      str += strconv.FormatFloat(b.Theta[k], 'f', 5, 64) + " "
+      str += strconv.FormatFloat(b.Phi[k], 'f', 5, 64) + "\n"
+      _, err := f.WriteString(str)
+      if err != nil {
+         io.LogError("error writing to file", "write error")
+      }
+   }
+
+}
+
+
+// save orbits info to file
+func (b *Binary) SaveBoundedOrbits (filename string) {
+
+   io.LogInfo("ORBITS - orbits.go - SaveBoundedOrbits", "saving orbits information")
+
+   // create file
+   f, err := os.Create(filename)
+   if err != nil {
+      io.LogError("error writing to file", "open file")
+   }
+
+   // remember to close the file
+   defer f.Close()
+
+   // write rows of different natal kicks
+   for k, kb := range b.IndexBounded {
+      str := strconv.Itoa(kb) + " "
+      str += strconv.FormatFloat(b.WBounded[k], 'f', 5, 64) + " "
+      str += strconv.FormatFloat(b.ThetaBounded[k], 'f', 5, 64) + " "
+      str += strconv.FormatFloat(b.PhiBounded[k], 'f', 5, 64) + " "
+      str += strconv.FormatFloat(b.PeriodBounded[k], 'f', 5, 64) + " "
+      str += strconv.FormatFloat(b.SeparationBounded[k], 'f', 5, 64) + " "
+      str += strconv.FormatFloat(b.EccentricityBounded[k], 'f', 5, 64) + "\n"
       _, err := f.WriteString(str)
       if err != nil {
          io.LogError("error writing to file", "write error")

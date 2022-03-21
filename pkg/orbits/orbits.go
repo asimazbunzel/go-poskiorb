@@ -229,12 +229,24 @@ func (b *Binary) SaveKicks (filename string) {
    // remember to close the file
    defer f.Close()
 
+   // header
+   column_names := [4]string{"id", "w", "theta", " phi"}
+   str := fmt.Sprintf("%20s", column_names[0]) 
+   str += fmt.Sprintf("%20s", column_names[1])
+   str += fmt.Sprintf("%20s", column_names[2])
+   str += fmt.Sprintf("%20s\n", column_names[3])
+   _, err = f.WriteString(str)
+   if err != nil {
+      io.LogError("ORBITS - orbits.go - SaveKicks", "error writing header to file")
+   }
+
+
    // write rows of different natal kicks
    for k, w := range b.W {
-      str := strconv.Itoa(k) + " "
-      str += strconv.FormatFloat(w, 'f', 5, 64) + " "
-      str += strconv.FormatFloat(b.Theta[k], 'f', 5, 64) + " "
-      str += strconv.FormatFloat(b.Phi[k], 'f', 5, 64) + "\n"
+      str := fmt.Sprintf("%20s", strconv.Itoa(k))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(w, 'f', 5, 64))
+      str += fmt.Sprintf("%20s",strconv.FormatFloat(b.Theta[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s\n",strconv.FormatFloat(b.Phi[k], 'f', 5, 64))
       _, err := f.WriteString(str)
       if err != nil {
          io.LogError("error writing to file", "write error")

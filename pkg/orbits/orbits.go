@@ -177,7 +177,6 @@ func (b *Binary) OrbitsAfterKicks (verbose bool) {
    msg := "calculating post core-collapse orbits for: " + strconv.Itoa(b.NumberOfCases) + " kicks"
    io.LogInfo("ORBITS - orbits.go - OrbitAfterKicks", msg)
 
-
    // velocity pre-SN
    vPre := math.Sqrt(StandardCgrav * (b.M1 + b.M2) / b.Separation)
    
@@ -240,7 +239,6 @@ func (b *Binary) SaveKicks (filename string) {
       io.LogError("ORBITS - orbits.go - SaveKicks", "error writing header to file")
    }
 
-
    // write rows of different natal kicks
    for k, w := range b.W {
       str := fmt.Sprintf("%20s", strconv.Itoa(k))
@@ -270,15 +268,29 @@ func (b *Binary) SaveBoundedOrbits (filename string) {
    // remember to close the file
    defer f.Close()
 
+   // header
+   column_names := [7]string{"id", "w", "theta", "phi", "period", "separation", "eccentricity"}
+   str := fmt.Sprintf("%20s", column_names[0]) 
+   str += fmt.Sprintf("%20s", column_names[1])
+   str += fmt.Sprintf("%20s", column_names[2])
+   str += fmt.Sprintf("%20s", column_names[3])
+   str += fmt.Sprintf("%20s", column_names[4]) 
+   str += fmt.Sprintf("%20s", column_names[5])
+   str += fmt.Sprintf("%20s\n", column_names[6])
+   _, err = f.WriteString(str)
+   if err != nil {
+      io.LogError("ORBITS - orbits.go - SaveKicks", "error writing header to file")
+   }
+
    // write rows of different natal kicks
    for k, kb := range b.IndexBounded {
-      str := strconv.Itoa(kb) + " "
-      str += strconv.FormatFloat(b.WBounded[k], 'f', 5, 64) + " "
-      str += strconv.FormatFloat(b.ThetaBounded[k], 'f', 5, 64) + " "
-      str += strconv.FormatFloat(b.PhiBounded[k], 'f', 5, 64) + " "
-      str += strconv.FormatFloat(b.PeriodBounded[k], 'f', 5, 64) + " "
-      str += strconv.FormatFloat(b.SeparationBounded[k], 'f', 5, 64) + " "
-      str += strconv.FormatFloat(b.EccentricityBounded[k], 'f', 5, 64) + "\n"
+      str := fmt.Sprintf("%20s", strconv.Itoa(kb))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.WBounded[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.ThetaBounded[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PhiBounded[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PeriodBounded[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s",  strconv.FormatFloat(b.SeparationBounded[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s\n",  strconv.FormatFloat(b.EccentricityBounded[k], 'f', 5, 64))
       _, err := f.WriteString(str)
       if err != nil {
          io.LogError("error writing to file", "write error")

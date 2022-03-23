@@ -3,13 +3,10 @@ package orbits
 import (
 	"fmt"
 	"go-orbits/pkg/io"
-	"io/ioutil"
 	"math"
-	"os"
 	"strconv"
 
 	"gonum.org/v1/gonum/stat/distuv"
-	"gopkg.in/yaml.v3"
 )
 
 // structure with binary configuration
@@ -36,6 +33,8 @@ type Binary struct {
    MaxTheta float64 `yaml:"max_theta"`
    
    NumberOfCases int `yaml:"number_of_cases"`
+   
+   LogLevel string `yaml:"log_level"`
 
    W []float64
    Phi []float64
@@ -52,27 +51,10 @@ type Binary struct {
 }
 
 
-// read information on binary and kicks from YAML file
-func (b *Binary) parseYAML (filename string) error {
-
-   io.LogInfo("ORBITS - orbits.go - parseYAML", "reading configuration from file")
-  
-   // read YAML data file into bytes 
-   data, err := ioutil.ReadFile(filename)
-   if err != nil {
-      io.LogError("ORBITS - orbits.go - ParseYAML", "problem reading YAML file")
-   }
-   
-   return yaml.Unmarshal(data, b)
-}
-
-
 // initialize structure Binary with the info from a binary system that will then be analyze in
 // different conditions due to asymmetric momentum kicks
 // it returns the Binary object
 func InitBinary (filename string) Binary {
-
-   io.LogInfo("ORBITS - orbits.go - InitBinary", "initializing binary")
 
    // load binary into memory
    var binary Binary
@@ -85,51 +67,12 @@ func InitBinary (filename string) Binary {
 }
 
 
-// input should be in Msun / Rsun / Lsun and so on.. here we change it to CGS
-func (b *Binary) ConvertoCGS () {
-
-   io.LogInfo("ORBITS - orbits.go - ConvertCGS", "converting to CGS units")
-
-   b.M1 = b.M1 * Msun
-   b.M2 = b.M2 * Msun
-   b.Separation = b.Separation * Rsun
-   b.Period = b.Period * 24 * 3600.0
-   b.MCO = b.MCO * Msun
-
-   for k, w := range b.W {
-      b.W[k] = w * km2cm
-   }
-
-}
-
-func (b *Binary) ConvertoAstro () {
-
-   io.LogInfo("ORBITS - orbits.go - ConvertoAstro", "converting to Astro units (Msun, Rsun, etc)")
-
-   b.M1 = b.M1 / Msun
-
-   b.M2 = b.M2 / Msun
-   b.Separation = b.Separation / Rsun
-   b.Period = b.Period / 24 / 3600.0
-   b.MCO = b.MCO / Msun
-
-   for k, w := range b.W {
-      b.W[k] = w / km2cm
-   }
-
-   for k,w := range b.WBounded {
-      b.WBounded[k] = w / km2cm
-      b.SeparationBounded[k] = b.SeparationBounded[k] / Rsun
-      b.PeriodBounded[k] = b.PeriodBounded[k] / 24 / 3600.0
-   }
-
-}
-
-
 // create slices of asymmetric kicks following a given probability density function
 func (b *Binary) ComputeKicks () {
 
-   io.LogInfo("ORBITS - orbits.go - ComputeKicks", "computing momentum kicks")
+   if b.LogLevel != "none" {
+      io.LogInfo("ORBITS - orbits.go - ComputeKicks", "computing momentum kicks")
+   }
 
    // Strength of kick based on config option
    if b.KickStrengthDistribution == "Maxwell" {
@@ -172,10 +115,12 @@ func (b *Binary) ComputeKicks () {
 
 // compute orbital parameters assuming linear momentum conservation before and just after
 // a momentum kick using Kalogera 1996
-func (b *Binary) OrbitsAfterKicks (verbose bool, extra_verbose bool) {
+func (b *Binary) OrbitsAfterKicks () {
 
-   msg := "calculating post core-collapse orbits for: " + strconv.Itoa(b.NumberOfCases) + " kicks"
-   io.LogInfo("ORBITS - orbits.go - OrbitAfterKicks", msg)
+   if b.LogLevel != "none" {
+      msg := "calculating post core-collapse orbits for: " + strconv.Itoa(b.NumberOfCases) + " kicks"
+      io.LogInfo("ORBITS - orbits.go - OrbitAfterKicks", msg)
+   }
 
    // velocity pre-SN
    vPre := math.Sqrt(StandardCgrav * (b.M1 + b.M2) / b.Separation)
@@ -192,11 +137,15 @@ func (b *Binary) OrbitsAfterKicks (verbose bool, extra_verbose bool) {
       epost := math.Sqrt(1 - (math.Pow(wz,2) + math.Pow(wy,2) + math.Pow(vPre,2) + 2*wy*vPre) * math.Pow(b.Separation,2) / (StandardCgrav * (b.MCO + b.M2) * apost))
 
       if epost < 0 || epost > 1 {
-         if false {fmt.Println("unbind binary for case ", k)}
+         if b.LogLevel == "debug" {
+            fmt.Printf("unbounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k], b.Theta[k], b.Phi[k], apost, epost)
+         }
       } else {
 
          // if here, binary is bounded after momentum kick
-         if extra_verbose {fmt.Println("bounded binary for case", k)}
+         if b.LogLevel == "debug" {
+            fmt.Printf("bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k], b.Theta[k], b.Phi[k], apost, epost)
+         }
 
          b.IndexBounded = append(b.IndexBounded, k)
          b.WBounded = append(b.WBounded, b.W[k])
@@ -211,98 +160,15 @@ func (b *Binary) OrbitsAfterKicks (verbose bool, extra_verbose bool) {
 
    }
 
-   if verbose {
+   if b.LogLevel == "info" || b.LogLevel == "debug" {
       nbounded := len(b.IndexBounded)
       nunbounded := b.NumberOfCases - len(b.IndexBounded)
-      fmt.Println("number of kicks", b.NumberOfCases)
+      fmt.Println("\nSummary of momentum kicks:")
+      fmt.Println("number of kicks:", b.NumberOfCases)
       fmt.Printf("fraction of binaries bounded: %d/%d (%f%%)\n", nbounded, b.NumberOfCases, 100*float64(nbounded)/float64(b.NumberOfCases))
-      fmt.Printf("fraction of binaries unbounded: %d/%d (%f%%)\n", nunbounded, b.NumberOfCases, 100*float64(nunbounded)/float64(b.NumberOfCases))
+      fmt.Printf("fraction of binaries unbounded: %d/%d (%f%%)\n\n", nunbounded, b.NumberOfCases, 100*float64(nunbounded)/float64(b.NumberOfCases))
    }
 
 }
 
 
-// save kick info to file
-func (b *Binary) SaveKicks (filename string) {
-
-   io.LogInfo("ORBITS - orbits.go - SaveKicks", "saving kicks information")
-
-   // create file
-   f, err := os.Create(filename)
-   if err != nil {
-      io.LogError("error writing to file", "open file")
-   }
-
-   // remember to close the file
-   defer f.Close()
-
-   // header
-   column_names := [4]string{"id", "w", "theta", " phi"}
-   str := fmt.Sprintf("%20s", column_names[0]) 
-   str += fmt.Sprintf("%20s", column_names[1])
-   str += fmt.Sprintf("%20s", column_names[2])
-   str += fmt.Sprintf("%20s\n", column_names[3])
-   _, err = f.WriteString(str)
-   if err != nil {
-      io.LogError("ORBITS - orbits.go - SaveKicks", "error writing header to file")
-   }
-
-   // write rows of different natal kicks
-   for k, w := range b.W {
-      str := fmt.Sprintf("%20s", strconv.Itoa(k))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(w, 'f', 5, 64))
-      str += fmt.Sprintf("%20s",strconv.FormatFloat(b.Theta[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s\n",strconv.FormatFloat(b.Phi[k], 'f', 5, 64))
-      _, err := f.WriteString(str)
-      if err != nil {
-         io.LogError("error writing to file", "write error")
-      }
-   }
-
-}
-
-
-// save orbits info to file
-func (b *Binary) SaveBoundedOrbits (filename string) {
-
-   io.LogInfo("ORBITS - orbits.go - SaveBoundedOrbits", "saving orbits information")
-
-   // create file
-   f, err := os.Create(filename)
-   if err != nil {
-      io.LogError("error writing to file", "open file")
-   }
-
-   // remember to close the file
-   defer f.Close()
-
-   // header
-   column_names := [7]string{"id", "w", "theta", "phi", "period", "separation", "eccentricity"}
-   str := fmt.Sprintf("%20s", column_names[0]) 
-   str += fmt.Sprintf("%20s", column_names[1])
-   str += fmt.Sprintf("%20s", column_names[2])
-   str += fmt.Sprintf("%20s", column_names[3])
-   str += fmt.Sprintf("%20s", column_names[4]) 
-   str += fmt.Sprintf("%20s", column_names[5])
-   str += fmt.Sprintf("%20s\n", column_names[6])
-   _, err = f.WriteString(str)
-   if err != nil {
-      io.LogError("ORBITS - orbits.go - SaveKicks", "error writing header to file")
-   }
-
-   // write rows of different natal kicks
-   for k, kb := range b.IndexBounded {
-      str := fmt.Sprintf("%20s", strconv.Itoa(kb))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.WBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.ThetaBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PhiBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PeriodBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s",  strconv.FormatFloat(b.SeparationBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s\n",  strconv.FormatFloat(b.EccentricityBounded[k], 'f', 5, 64))
-      _, err := f.WriteString(str)
-      if err != nil {
-         io.LogError("error writing to file", "write error")
-      }
-   }
-
-}

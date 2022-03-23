@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"go-orbits/pkg/io"
 	"math"
+   "sort"
 	"strconv"
 
+	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
@@ -35,6 +37,13 @@ type Binary struct {
    NumberOfCases int `yaml:"number_of_cases"`
    
    LogLevel string `yaml:"log_level"`
+
+   PQuantileMin float64 `yaml:"period_quantile_min"`
+   PQuantileMax float64 `yaml:"period_quantile_max"`
+   EQuantileMin float64 `yaml:"eccentricity_quantile_min"`
+   EQuantileMax float64 `yaml:"eccentricity_quantile_max"`
+   PNum int `yaml:"number_of_periods"`
+   ENum int `yaml:"number_of_eccentricities"`
 
    W []float64
    Phi []float64
@@ -172,3 +181,45 @@ func (b *Binary) OrbitsAfterKicks () {
 }
 
 
+// divide orbital parameter in a grid
+func (b *Binary) GridOfOrbits () {
+
+   if b.LogLevel != "none" {
+      msg := "calculating grid of orbits for: " + strconv.Itoa(len(b.IndexBounded)) + " cases"
+      io.LogInfo("ORBITS - orbits.go - GridOfOrbits", msg)
+   }
+
+   // temporary arrays, stat.Quantile needs sorted arrays
+   x := b.PeriodBounded
+   y := b.EccentricityBounded
+   sort.Float64s(x)
+   sort.Float64s(y)
+
+   // find quantiles according to limits given
+   pMin := stat.Quantile(b.PQuantileMin, 1, x, nil)
+   pMax := stat.Quantile(b.PQuantileMax, 1, x, nil)
+   eMin := stat.Quantile(b.EQuantileMin, 1, y, nil)
+   eMax := stat.Quantile(b.EQuantileMax, 1, y, nil)
+   
+   if b.LogLevel == "debug" {
+      fmt.Println("\nGrid of orbits")
+      fmt.Printf("period quantiles: %.2E, %.2E\n", pMin / 24 / 3600.0, pMax / 24 / 3600.0)
+      fmt.Printf("eccentricity quantiles: %.2f, %.2f\n", eMin, eMax)
+   }
+
+   // borders in grid
+   pBorders := LogSpace(math.Log10(pMin), math.Log10(pMax), b.PNum, 10.0)
+   eBorders := LinSpace(eMin, eMax, b.ENum)
+
+   // make grid using borders
+   pGrid := make([]float64, b.PNum-1)
+   for k := 1; k < len(pBorders); k++ {
+      pGrid[k-1] = math.Sqrt(pBorders[k-1] * pBorders[k])
+   }
+   
+   eGrid := make([]float64, b.ENum-1)
+   for k := 1; k < len(eBorders); k++ {
+      eGrid[k-1] = 0.5 * (eBorders[k-1] + eBorders[k])
+   }
+
+}

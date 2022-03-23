@@ -69,3 +69,39 @@ func (b *Binary) ConvertoAstro () {
    }
 
 }
+
+
+// linspace function
+func LinSpace (xi float64, xf float64, num int) []float64 {
+
+   if num <= 1 {
+      io.LogError("ORBITS - orbits.go - LinSpace", "`num` must be greater than 1")
+   }
+
+   xstep := (xf - xi) / float64(num-1)
+   x := make([]float64, num)
+	x[0] = xi
+	for k := 1; k < num; k++ {
+		x[k] = xi + float64(k) * xstep
+	}
+   x[num-1] = xf
+	
+   return x
+
+}
+
+
+// logspace function
+func LogSpace (xi float64, xf float64, num int, base float64) []float64 {
+
+   // first, get power in linspace
+   xpower := LinSpace(xi, xf, num)
+
+   // now loop over array and compute its power
+   x := make([]float64, num)
+   for k := 0; k <= len(xpower)-1; k++ {
+      x[k] = math.Pow(base, xpower[k])
+   }
+
+   return x
+}

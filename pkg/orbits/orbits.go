@@ -172,7 +172,7 @@ func (b *Binary) ComputeKicks () {
 
 // compute orbital parameters assuming linear momentum conservation before and just after
 // a momentum kick using Kalogera 1996
-func (b *Binary) OrbitsAfterKicks (verbose bool) {
+func (b *Binary) OrbitsAfterKicks (verbose bool, extra_verbose bool) {
 
    msg := "calculating post core-collapse orbits for: " + strconv.Itoa(b.NumberOfCases) + " kicks"
    io.LogInfo("ORBITS - orbits.go - OrbitAfterKicks", msg)
@@ -192,11 +192,11 @@ func (b *Binary) OrbitsAfterKicks (verbose bool) {
       epost := math.Sqrt(1 - (math.Pow(wz,2) + math.Pow(wy,2) + math.Pow(vPre,2) + 2*wy*vPre) * math.Pow(b.Separation,2) / (StandardCgrav * (b.MCO + b.M2) * apost))
 
       if epost < 0 || epost > 1 {
-         if verbose {fmt.Println("unbind binary for case ", k)}
+         if false {fmt.Println("unbind binary for case ", k)}
       } else {
 
          // if here, binary is bounded after momentum kick
-         if verbose {fmt.Println("bounded binary for case", k)}
+         if extra_verbose {fmt.Println("bounded binary for case", k)}
 
          b.IndexBounded = append(b.IndexBounded, k)
          b.WBounded = append(b.WBounded, b.W[k])
@@ -209,6 +209,14 @@ func (b *Binary) OrbitsAfterKicks (verbose bool) {
          b.PeriodBounded = append(b.PeriodBounded, AtoP(apost, b.M1, b.M2))
       }
 
+   }
+
+   if verbose {
+      nbounded := len(b.IndexBounded)
+      nunbounded := b.NumberOfCases - len(b.IndexBounded)
+      fmt.Println("number of kicks", b.NumberOfCases)
+      fmt.Printf("fraction of binaries bounded: %d/%d (%f%%)\n", nbounded, b.NumberOfCases, 100*float64(nbounded)/float64(b.NumberOfCases))
+      fmt.Printf("fraction of binaries unbounded: %d/%d (%f%%)\n", nunbounded, b.NumberOfCases, 100*float64(nunbounded)/float64(b.NumberOfCases))
    }
 
 }

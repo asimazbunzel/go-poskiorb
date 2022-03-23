@@ -24,7 +24,7 @@ func main () {
    b.ConvertoCGS()
 
    // orbit configurations after momentum kick
-   b.OrbitsAfterKicks(true)
+   b.OrbitsAfterKicks(true, false)
 
    // save to file
    b.SaveKicks("test_kicks.data")

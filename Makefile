@@ -1,5 +1,5 @@
 build:
 	go build -o bin/orbits ./cmd/go-orbits
 
-run:
-	bin/orbits
+test:
+	bin/orbits -C test/config.yaml

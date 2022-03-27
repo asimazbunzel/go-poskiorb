@@ -153,7 +153,7 @@ func (b *Binary) OrbitsAfterKicks () {
 
          // if here, binary is bounded after momentum kick
          if b.LogLevel == "debug" {
-            fmt.Printf("bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k], b.Theta[k], b.Phi[k], apost, epost)
+            fmt.Printf("  bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k], b.Theta[k], b.Phi[k], apost, epost)
          }
 
          b.IndexBounded = append(b.IndexBounded, k)
@@ -221,5 +221,31 @@ func (b *Binary) GridOfOrbits () {
    for k := 1; k < len(eBorders); k++ {
       eGrid[k-1] = 0.5 * (eBorders[k-1] + eBorders[k])
    }
+
+   // compute 2D-grid of probabilities
+   probabilities := make([][]float64, len(pGrid)*len(eGrid))
+   for i := 0; i < len(pGrid)*len(eGrid); i++ {
+      probabilities[i] = make([]float64, 2)
+      for j := 0; j < 2; j++ {
+      probabilities[i][j] = 0.0
+      }
+   }
+   // fmt.Println(probabilities)
+
+   // for k := 0; k <= len(b.IndexBounded); k++ {
+      // // temporary vars
+      // p := b.PeriodBounded[k]
+      // e := b.EccentricityBounded[k]
+      // for i := 0; i <= len(pGrid); i++ {
+         // if p >= pBorders[i] || p < pBorders[i+1] {
+            // for j:= 0; j < len(eGrid); j++ {
+               // if e >= eBorders[j] || e < eBorders[j+1] {
+                  // fmt.Println(p, e)
+                  // probabilities[i][j] += 1
+               // }
+            // }
+         // }
+      // }
+   // }
 
 }

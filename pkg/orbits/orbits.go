@@ -223,29 +223,42 @@ func (b *Binary) GridOfOrbits () {
    }
 
    // compute 2D-grid of probabilities
-   probabilities := make([][]float64, len(pGrid)*len(eGrid))
-   for i := 0; i < len(pGrid)*len(eGrid); i++ {
-      probabilities[i] = make([]float64, 2)
-      for j := 0; j < 2; j++ {
+   nRows := len(eGrid)
+   nCols := len(pGrid)
+   probabilities := make([][]float64, nRows)
+   for i := 0; i < nRows; i++ {
+      probabilities[i] = make([]float64, nCols)
+      for j := 0; j < nCols; j++ {
       probabilities[i][j] = 0.0
       }
    }
-   // fmt.Println(probabilities)
 
-   // for k := 0; k <= len(b.IndexBounded); k++ {
-      // // temporary vars
-      // p := b.PeriodBounded[k]
-      // e := b.EccentricityBounded[k]
-      // for i := 0; i <= len(pGrid); i++ {
-         // if p >= pBorders[i] || p < pBorders[i+1] {
-            // for j:= 0; j < len(eGrid); j++ {
-               // if e >= eBorders[j] || e < eBorders[j+1] {
-                  // fmt.Println(p, e)
-                  // probabilities[i][j] += 1
-               // }
-            // }
-         // }
-      // }
-   // }
+   // loop over each
+   if b.LogLevel == "debug" {
+      io.LogInfo("ORBITS - orbits.go - GridOfOrbits", "start loop over random binaries")
+   }
+   for k := 0; k < len(b.IndexBounded); k++ {
+      // temporary vars
+      p := b.PeriodBounded[k]
+      e := b.EccentricityBounded[k]
+      for i := 0; i < nRows; i++ {
+         if e >= eBorders[i] && e < eBorders[i+1] {
+            for j:= 0; j < nCols; j++ {
+               if p >= pBorders[j] && e < pBorders[j+1] {
+                  probabilities[i][j] += 1 / float64(len(b.IndexBounded))
+                  if b.LogLevel == "debug" {
+                     fmt.Println("lower < period < upper", pBorders[j]/24/3600, p/24/3600.0, pBorders[j+1]/24/3600.0)
+                     fmt.Println("lower < eccentricity < upper", eBorders[i], e, eBorders[i+1])
+                  }
+               }
+            }
+         }
+      }
+   }
+   if b.LogLevel == "debug" {
+      for i := 0; i < nRows; i++ {
+         fmt.Println("row, probability row:", i, probabilities[i])
+      }
+   }
 
 }

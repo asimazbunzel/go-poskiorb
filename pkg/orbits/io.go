@@ -60,7 +60,7 @@ func (b *Binary) SaveKicks (filename string) {
       str += fmt.Sprintf("%20s\n",strconv.FormatFloat(b.Phi[k], 'f', 5, 64))
       _, err := f.WriteString(str)
       if err != nil {
-         io.LogError("error writing to file", "write error")
+         io.LogError("ORBITS - orbits.go - SaveKicks", "error writing info to file")
       }
    }
 
@@ -94,7 +94,7 @@ func (b *Binary) SaveBoundedOrbits (filename string) {
    str += fmt.Sprintf("%20s\n", column_names[6])
    _, err = f.WriteString(str)
    if err != nil {
-      io.LogError("ORBITS - orbits.go - SaveKicks", "error writing header to file")
+      io.LogError("ORBITS - orbits.go - SaveBoundedOrbits", "error writing header to file")
    }
 
    // write rows of different natal kicks
@@ -108,7 +108,51 @@ func (b *Binary) SaveBoundedOrbits (filename string) {
       str += fmt.Sprintf("%20s\n",  strconv.FormatFloat(b.EccentricityBounded[k], 'f', 5, 64))
       _, err := f.WriteString(str)
       if err != nil {
-         io.LogError("error writing to file", "write error")
+         io.LogError("ORBITS - orbits.go - SaveBoundedOrbits", "error writing info to file")
+      }
+   }
+
+}
+
+
+// save grid of binaries bounded after kick
+func (b *Binary) SaveGridOrbits (filename string) {
+
+   if b.LogLevel != "none"{
+      io.LogInfo("ORBITS - orbits.go - SaveGridOrbits", "saving grid of orbits information")
+   }
+
+   // create file
+   f, err := os.Create(filename)
+   if err != nil {
+      io.LogError("error writing to file", "open file")
+   }
+
+   // remember to close the file
+   defer f.Close()
+
+   // header
+   column_names := [5]string{"id", "period", "separation", "eccentricity", "probability"}
+   str := fmt.Sprintf("%20s", column_names[0]) 
+   str += fmt.Sprintf("%20s", column_names[1])
+   str += fmt.Sprintf("%20s", column_names[2])
+   str += fmt.Sprintf("%20s", column_names[3])
+   str += fmt.Sprintf("%20s\n", column_names[4]) 
+   _, err = f.WriteString(str)
+   if err != nil {
+      io.LogError("ORBITS - orbits.go - SaveGridOrbits", "error writing header to file")
+   }
+
+   // write info to file
+   for k, _ := range b.PeriodGrid {
+      str := fmt.Sprintf("%20s", strconv.Itoa(k))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PeriodGrid[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.SeparationGrid[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.EccentricityGrid[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s\n", strconv.FormatFloat(b.ProbabilityGrid[k], 'f', 5, 64))
+      _, err := f.WriteString(str)
+      if err != nil {
+         io.LogError("ORBITS - orbits.go - SaveGridOrbits", "error writing info to file")
       }
    }
 

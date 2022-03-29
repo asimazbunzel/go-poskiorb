@@ -11,7 +11,7 @@ import (
 // kepler law to get binary separation from orbital period
 func PtoA (p float64, m1 float64, m2 float64) float64 {
 
-   return math.Pow(StandardCgrav * (m1 + m2) * math.Pow(p/(2*math.Pi),2), 1/3)
+   return math.Pow(StandardCgrav * (m1 + m2) * math.Pow(p/(2.0*math.Pi),2.0), 1.0/3.0)
 
 }
 
@@ -19,7 +19,7 @@ func PtoA (p float64, m1 float64, m2 float64) float64 {
 // kepler law to get orbital period from binary separation
 func AtoP (a float64, m1 float64, m2 float64) float64 {
 
-   return (2*math.Pi) * math.Pow(math.Pow(a,3) / (StandardCgrav * (m1 + m2)),0.5)
+   return (2.0*math.Pi) * math.Pow(math.Pow(a,3.0) / (StandardCgrav * (m1 + m2)),0.5)
 
 }
 
@@ -34,7 +34,7 @@ func (b *Binary) ConvertoCGS () {
    b.M1 = b.M1 * Msun
    b.M2 = b.M2 * Msun
    b.Separation = b.Separation * Rsun
-   b.Period = b.Period * 24 * 3600.0
+   b.Period = b.Period * 24.0 * 3600.0
    b.MCO = b.MCO * Msun
 
    for k, w := range b.W {
@@ -55,7 +55,7 @@ func (b *Binary) ConvertoAstro () {
 
    b.M2 = b.M2 / Msun
    b.Separation = b.Separation / Rsun
-   b.Period = b.Period / 24 / 3600.0
+   b.Period = b.Period / 24.0 / 3600.0
    b.MCO = b.MCO / Msun
 
    for k, w := range b.W {
@@ -65,7 +65,12 @@ func (b *Binary) ConvertoAstro () {
    for k,w := range b.WBounded {
       b.WBounded[k] = w / km2cm
       b.SeparationBounded[k] = b.SeparationBounded[k] / Rsun
-      b.PeriodBounded[k] = b.PeriodBounded[k] / 24 / 3600.0
+      b.PeriodBounded[k] = b.PeriodBounded[k] / 24.0 / 3600.0
+   }
+
+   for k, _ := range b.PeriodGrid {
+      b.PeriodGrid[k] = b.PeriodGrid[k] / 24.0 / 3600.0
+      b.SeparationGrid[k] = b.SeparationGrid[k] / Rsun
    }
 
 }
@@ -104,4 +109,15 @@ func LogSpace (xi float64, xf float64, num int, base float64) []float64 {
    }
 
    return x
+}
+
+
+// return the number of digits of an integer
+func CountDigits (number int) int {
+
+   if number < 10 {
+      return 1
+   } else {
+      return 1 + CountDigits(number / 10)
+   }
 }

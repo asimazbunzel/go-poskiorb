@@ -6,7 +6,7 @@ const (
    StandardCgrav = 6.67430e-8
 
    // seconds in a year
-   SecYer = 24 * 60 * 60 * 365.25
+   SecYer = 24.0 * 60.0 * 60.0 * 365.25
 
 
    // km to cm

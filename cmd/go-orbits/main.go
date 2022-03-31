@@ -1,21 +1,28 @@
-
 // Package main provides ...
 package main
 
 import (
+	"flag"
 
-   "go-orbits/pkg/io"
-   "go-orbits/pkg/orbits"
-
+	"go-orbits/pkg/io"
+	"go-orbits/pkg/orbits"
 )
 
 func main () {
 
-   // starting logging message
-   io.LogInfo("MAIN - main.go - main", "starting orbits study")
+   // store name of config file from command line argument
+   var configFilename string
+   flag.StringVar(&configFilename, "config-file", "config.yaml", "Specify name of configuration file")
+   flag.StringVar(&configFilename, "C", "config.yaml", "Specify name of configuration file")
+   flag.Parse()
 
    // get binary configuration previous to kick study
-   b := orbits.InitBinary("test/config.yaml")
+   b := orbits.InitBinary(configFilename)
+   
+   // starting logging message
+   if b.LogLevel != "none" {
+      io.LogInfo("MAIN - main.go - main", "starting orbits study")
+   }
 
    // compute kicks
    b.ComputeKicks()
@@ -24,19 +31,28 @@ func main () {
    b.ConvertoCGS()
 
    // orbit configurations after momentum kick
-   b.OrbitsAfterKicks(true, false)
+   b.OrbitsAfterKicks()
 
-   // save to file
-   b.SaveKicks("test_kicks.data")
-
+   // compute grid of orbital parameters
+   b.GridOfOrbits()
 
    // go back to astro units
    b.ConvertoAstro()
-
-   // save orbits to a file
-   b.SaveBoundedOrbits("test_orbits.data")
+   
+   // saves to files
+   if b.StoreKicks {
+      b.SaveKicks(b.KicksFilename)
+   }
+   if b.StoreOrbits {
+      b.SaveBoundedOrbits(b.BoundedBinariesFilename)
+   }
+   if b.StoreGrid {
+      b.SaveGridOrbits(b.GridFilename)
+   }
 
    // end of computation
-   io.LogInfo("MAIN - main.go - main", "exit code with success")
+   if b.LogLevel != "none" {
+      io.LogInfo("MAIN - main.go - main", "exit code with success")
+   }
 
 }

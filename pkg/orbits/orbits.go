@@ -4,9 +4,10 @@ import (
 	"fmt"
 	"go-orbits/pkg/io"
 	"math"
-   "sort"
+	"sort"
 	"strconv"
 
+	"golang.org/x/exp/rand"
 	"gonum.org/v1/gonum/stat"
 	"gonum.org/v1/gonum/stat/distuv"
 )
@@ -34,9 +35,19 @@ type Binary struct {
    MinTheta float64 `yaml:"min_theta"`
    MaxTheta float64 `yaml:"max_theta"`
    
+   Seed uint64 `yaml:"seed"`
+
    NumberOfCases int `yaml:"number_of_cases"`
    
    LogLevel string `yaml:"log_level"`
+
+   StoreKicks bool `yaml:"save_kicks"`
+   StoreOrbits bool `yaml:"save_bounded_orbits"`
+   StoreGrid bool `yaml:"save_grid_of_orbits"`
+
+   KicksFilename string `yaml:"kicks_filename"`
+   BoundedBinariesFilename string `yaml:"bounded_orbits_filename"`
+   GridFilename string `yaml:"grid_of_orbits_filename"`
 
    PQuantileMin float64 `yaml:"period_quantile_min"`
    PQuantileMax float64 `yaml:"period_quantile_max"`
@@ -44,6 +55,7 @@ type Binary struct {
    EQuantileMax float64 `yaml:"eccentricity_quantile_max"`
    PNum int `yaml:"number_of_periods"`
    ENum int `yaml:"number_of_eccentricities"`
+   MinProb float64 `yaml:"minimum_probability_for_grid"`
 
    W []float64
    Phi []float64
@@ -56,6 +68,11 @@ type Binary struct {
    SeparationBounded []float64
    EccentricityBounded []float64
    PeriodBounded []float64
+
+   PeriodGrid []float64
+   SeparationGrid []float64
+   EccentricityGrid []float64
+   ProbabilityGrid []float64
 
 }
 
@@ -83,19 +100,22 @@ func (b *Binary) ComputeKicks () {
       io.LogInfo("ORBITS - orbits.go - ComputeKicks", "computing momentum kicks")
    }
 
+   // random seed
+   src := rand.New(rand.NewSource(b.Seed))
+
    // Strength of kick based on config option
    if b.KickStrengthDistribution == "Maxwell" {
       // Maxwell distribution is just a chi-squared distribution with 3 d.o.f., k=3
       // therefore, just use inverse sampling for the chi-squared and then correct values with
       // normalization constant
-      maxwell := distuv.ChiSquared{3, nil}
-      for k := 0; k <= b.NumberOfCases; k++ {
+      maxwell := distuv.ChiSquared{3, src}
+      for k := 0; k < b.NumberOfCases; k++ {
          b.W = append(b.W, b.SigmaStrength * math.Sqrt(maxwell.Rand()))
       }
    } else if b.KickStrengthDistribution == "Uniform" {
       // Uniform distribution needs min & max values as input
-      uniform := distuv.Uniform{b.MinKickStrength, b.MaxKickStrength, nil}
-      for k := 0; k <= b.NumberOfCases; k++ {
+      uniform := distuv.Uniform{b.MinKickStrength, b.MaxKickStrength, src}
+      for k := 0; k < b.NumberOfCases; k++ {
          b.W = append(b.W, uniform.Rand())
       }
    } else {
@@ -105,18 +125,30 @@ func (b *Binary) ComputeKicks () {
    // Direction of kicks
    if b.KickDirection == "Uniform" {
       // phi distribution must be between 0 and 2pi
-      uniform_phi := distuv.Uniform{b.MinPhi * math.Phi, b.MaxPhi * math.Phi, nil}
-      for k := 0; k <= b.NumberOfCases; k++ {
+      uniform_phi := distuv.Uniform{b.MinPhi * math.Pi, b.MaxPhi * math.Pi, src}
+      for k := 0; k < b.NumberOfCases; k++ {
          b.Phi = append(b.Phi, uniform_phi.Rand())
       }
 
       // theta distribution must be between 0 and pi, but remember that is modulated by cosine
-      uniform_theta := distuv.UnitUniform
-      for k := 0; k <= b.NumberOfCases; k++ {
-         b.Theta = append(b.Theta, math.Acos(2 * uniform_theta.Rand() - 1))
+      uniform_theta := distuv.Uniform{0, 1, src}
+      for k := 0; k < b.NumberOfCases; k++ {
+         b.Theta = append(b.Theta, math.Acos(2.0 * uniform_theta.Rand() - 1.0))
       }
    } else {
       io.LogError("ORBITS - orbits.go - ComputeKicks", "unknown KickDirection")
+   }
+
+   if b.LogLevel == "debug" {
+      last_index := 0
+      for k, _ := range b.PeriodGrid {
+         last_index = k
+      }
+      digits := CountDigits(last_index)
+      fmt.Printf("  id      w   theta   phi\n")
+      for k := 0; k < b.NumberOfCases; k++ {
+         fmt.Printf("  %0*d    %.2E     %.2E       %.2E\n", digits, k, b.W[k], b.Theta[k], b.Phi[k])
+      }
    }
 
 }
@@ -134,7 +166,7 @@ func (b *Binary) OrbitsAfterKicks () {
    // velocity pre-SN
    vPre := math.Sqrt(StandardCgrav * (b.M1 + b.M2) / b.Separation)
    
-   for k := 0; k <= b.NumberOfCases; k++ {
+   for k := 0; k < b.NumberOfCases; k++ {
 
       // kick velocity projected to (x,y,z)
       // wx := b.W[k] * math.Cos(b.Phi[k]) * math.Sin(b.Theta[k])
@@ -142,18 +174,18 @@ func (b *Binary) OrbitsAfterKicks () {
       wz := b.W[k] * math.Sin(b.Phi[k]) * math.Sin(b.Theta[k])
 
       // eqs (3), (4) & (5)
-      apost := StandardCgrav * (b.MCO + b.M2) / (2 * StandardCgrav * (b.MCO + b.M2) / b.Separation - math.Pow(b.W[k],2) - math.Pow(vPre,2) - 2*wy * vPre)
-      epost := math.Sqrt(1 - (math.Pow(wz,2) + math.Pow(wy,2) + math.Pow(vPre,2) + 2*wy*vPre) * math.Pow(b.Separation,2) / (StandardCgrav * (b.MCO + b.M2) * apost))
+      apost := StandardCgrav * (b.MCO + b.M2) / (2.0 * StandardCgrav * (b.MCO + b.M2) / b.Separation - math.Pow(b.W[k],2.0) - math.Pow(vPre,2.0) - 2.0 * wy * vPre)
+      epost := math.Sqrt(1.0 - (math.Pow(wz,2.0) + math.Pow(wy,2.0) + math.Pow(vPre,2.0) + 2.0 * wy * vPre) * math.Pow(b.Separation,2.0) / (StandardCgrav * (b.MCO + b.M2) * apost))
 
       if epost < 0 || epost > 1 {
          if b.LogLevel == "debug" {
-            fmt.Printf("unbounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k], b.Theta[k], b.Phi[k], apost, epost)
+            fmt.Printf("unbounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k]/1e5, b.Theta[k], b.Phi[k], apost/Rsun, epost)
          }
       } else {
 
          // if here, binary is bounded after momentum kick
          if b.LogLevel == "debug" {
-            fmt.Printf("  bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k], b.Theta[k], b.Phi[k], apost, epost)
+            fmt.Printf("  bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k]/1e5, b.Theta[k], b.Phi[k], apost/Rsun, epost)
          }
 
          b.IndexBounded = append(b.IndexBounded, k)
@@ -166,7 +198,6 @@ func (b *Binary) OrbitsAfterKicks () {
          // kepler needed here
          b.PeriodBounded = append(b.PeriodBounded, AtoP(apost, b.M1, b.M2))
       }
-
    }
 
    if b.LogLevel == "info" || b.LogLevel == "debug" {
@@ -201,9 +232,9 @@ func (b *Binary) GridOfOrbits () {
    eMin := stat.Quantile(b.EQuantileMin, 1, y, nil)
    eMax := stat.Quantile(b.EQuantileMax, 1, y, nil)
    
-   if b.LogLevel == "debug" {
+   if b.LogLevel != "none" {
       fmt.Println("\nGrid of orbits")
-      fmt.Printf("period quantiles: %.2E, %.2E\n", pMin / 24 / 3600.0, pMax / 24 / 3600.0)
+      fmt.Printf("period quantiles: %.2E, %.2E\n", pMin/24.0/3600.0, pMax/24.0/3600.0)
       fmt.Printf("eccentricity quantiles: %.2f, %.2f\n", eMin, eMax)
    }
 
@@ -233,7 +264,7 @@ func (b *Binary) GridOfOrbits () {
       }
    }
 
-   // loop over each
+   // loop over each binary bounded after kick
    if b.LogLevel == "debug" {
       io.LogInfo("ORBITS - orbits.go - GridOfOrbits", "start loop over random binaries")
    }
@@ -246,19 +277,46 @@ func (b *Binary) GridOfOrbits () {
             for j:= 0; j < nCols; j++ {
                if p >= pBorders[j] && e < pBorders[j+1] {
                   probabilities[i][j] += 1 / float64(len(b.IndexBounded))
-                  if b.LogLevel == "debug" {
-                     fmt.Println("lower < period < upper", pBorders[j]/24/3600, p/24/3600.0, pBorders[j+1]/24/3600.0)
-                     fmt.Println("lower < eccentricity < upper", eBorders[i], e, eBorders[i+1])
-                  }
+                  // if b.LogLevel == "debug" {
+                     // fmt.Println("lower < period < upper", pBorders[j]/24.0/3600.0, p/24.0/3600.0, pBorders[j+1]/24.0/3600.0)
+                     // fmt.Println("lower < eccentricity < upper", eBorders[i], e, eBorders[i+1])
+                  // }
                }
             }
          }
       }
    }
+   // some more output for debugging mode
    if b.LogLevel == "debug" {
       for i := 0; i < nRows; i++ {
          fmt.Println("row, probability row:", i, probabilities[i])
       }
+   }
+
+   // now get values from grid that are above a minimum probability value
+   for i := 0; i < nRows; i++ {
+      for j:= 0; j < nCols; j++ {
+         if probabilities[i][j] > b.MinProb {
+            b.PeriodGrid = append(b.PeriodGrid, pGrid[j])
+            b.EccentricityGrid = append(b.EccentricityGrid, eGrid[i])
+            b.SeparationGrid = append(b.SeparationGrid, PtoA(pGrid[j], b.M1, b.M2))
+            b.ProbabilityGrid = append(b.ProbabilityGrid, probabilities[i][j])
+         }
+      }
+   }
+   // output grid above probability minimum
+   if b.LogLevel != "none" {
+      fmt.Println("\nGrid of orbits above minimum probability")
+      fmt.Printf("  id      period   separation   eccentricity\n")
+      last_index := 0
+      for k, _ := range b.PeriodGrid {
+         last_index = k
+      }
+      digits := CountDigits(last_index)
+      for k, _ := range b.PeriodGrid {
+         fmt.Printf("  %0*d    %.2E     %.2E       %.2E\n", digits, k, b.PeriodGrid[k]/24.0/3600.0, b.SeparationGrid[k] / Rsun, b.EccentricityGrid[k])
+      }
+      fmt.Printf("\n")
    }
 
 }

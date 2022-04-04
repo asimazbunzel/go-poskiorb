@@ -183,11 +183,6 @@ func (b *Binary) OrbitsAfterKicks () {
          }
       } else {
 
-         // if here, binary is bounded after momentum kick
-         if b.LogLevel == "debug" {
-            fmt.Printf("  bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, e=%.2f\n", k, b.W[k]/1e5, b.Theta[k], b.Phi[k], apost/Rsun, epost)
-         }
-
          b.IndexBounded = append(b.IndexBounded, k)
          b.WBounded = append(b.WBounded, b.W[k])
          b.ThetaBounded = append(b.ThetaBounded , b.Theta[k])
@@ -197,8 +192,14 @@ func (b *Binary) OrbitsAfterKicks () {
          b.EccentricityBounded = append(b.EccentricityBounded, epost)
          // kepler needed here
          b.PeriodBounded = append(b.PeriodBounded, AtoP(apost, b.M1, b.M2))
+         
+         // if here, binary is bounded after momentum kick
+         if b.LogLevel == "debug" {
+            fmt.Printf("  bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, p=%.2E, e=%.2f\n", k, b.W[k]/1e5, b.Theta[k], b.Phi[k], apost/Rsun, AtoP(apost, b.M1, b.M2)/24.0/3600.0, epost)
+         }
       }
    }
+
 
    if b.LogLevel == "info" || b.LogLevel == "debug" {
       nbounded := len(b.IndexBounded)
@@ -221,16 +222,21 @@ func (b *Binary) GridOfOrbits () {
    }
 
    // temporary arrays, stat.Quantile needs sorted arrays
-   x := b.PeriodBounded
-   y := b.EccentricityBounded
+   x := make([]float64, len(b.IndexBounded))
+   y := make([]float64, len(b.IndexBounded))
+   for k, _ := range b.IndexBounded {
+      x[k] = b.PeriodBounded[k]
+      y[k] = b.EccentricityBounded[k]
+   }
    sort.Float64s(x)
    sort.Float64s(y)
-
+   
    // find quantiles according to limits given
    pMin := stat.Quantile(b.PQuantileMin, 1, x, nil)
    pMax := stat.Quantile(b.PQuantileMax, 1, x, nil)
    eMin := stat.Quantile(b.EQuantileMin, 1, y, nil)
    eMax := stat.Quantile(b.EQuantileMax, 1, y, nil)
+   
    
    if b.LogLevel != "none" {
       fmt.Println("\nGrid of orbits")

@@ -165,7 +165,7 @@ func (b *Binary) OrbitsAfterKicks () {
 
    // velocity pre-SN
    vPre := math.Sqrt(StandardCgrav * (b.M1 + b.M2) / b.Separation)
-   
+
    for k := 0; k < b.NumberOfCases; k++ {
 
       // kick velocity projected to (x,y,z)
@@ -192,7 +192,7 @@ func (b *Binary) OrbitsAfterKicks () {
          b.EccentricityBounded = append(b.EccentricityBounded, epost)
          // kepler needed here
          b.PeriodBounded = append(b.PeriodBounded, AtoP(apost, b.M1, b.M2))
-         
+
          // if here, binary is bounded after momentum kick
          if b.LogLevel == "debug" {
             fmt.Printf("  bounded binary for case: id=%d, w=%.2E, theta=%.2f, phi=%.2f, a=%.2E, p=%.2E, e=%.2f\n", k, b.W[k]/1e5, b.Theta[k], b.Phi[k], apost/Rsun, AtoP(apost, b.M1, b.M2)/24.0/3600.0, epost)
@@ -230,14 +230,14 @@ func (b *Binary) GridOfOrbits () {
    }
    sort.Float64s(x)
    sort.Float64s(y)
-   
+
    // find quantiles according to limits given
    pMin := stat.Quantile(b.PQuantileMin, 1, x, nil)
    pMax := stat.Quantile(b.PQuantileMax, 1, x, nil)
    eMin := stat.Quantile(b.EQuantileMin, 1, y, nil)
    eMax := stat.Quantile(b.EQuantileMax, 1, y, nil)
-   
-   
+
+
    if b.LogLevel != "none" {
       fmt.Println("\nGrid of orbits")
       fmt.Printf("period quantiles: %.2E, %.2E\n", pMin/24.0/3600.0, pMax/24.0/3600.0)
@@ -253,7 +253,7 @@ func (b *Binary) GridOfOrbits () {
    for k := 1; k < len(pBorders); k++ {
       pGrid[k-1] = math.Sqrt(pBorders[k-1] * pBorders[k])
    }
-   
+
    eGrid := make([]float64, b.ENum-1)
    for k := 1; k < len(eBorders); k++ {
       eGrid[k-1] = 0.5 * (eBorders[k-1] + eBorders[k])
@@ -298,6 +298,9 @@ func (b *Binary) GridOfOrbits () {
          fmt.Println("row, probability row:", i, probabilities[i])
       }
    }
+
+   fmt.Println("stop for now, the following code is not working properly")
+   return
 
    // now get values from grid that are above a minimum probability value
    for i := 0; i < nRows; i++ {

@@ -38,7 +38,7 @@ func main () {
 
    // go back to astro units
    b.ConvertoAstro()
-   
+
    // saves to files
    if b.StoreKicks {
       b.SaveKicks(b.KicksFilename)

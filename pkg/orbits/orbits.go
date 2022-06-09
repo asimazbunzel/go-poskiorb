@@ -281,12 +281,12 @@ func (b *Binary) GridOfOrbits () {
       for i := 0; i < nRows; i++ {
          if e >= eBorders[i] && e < eBorders[i+1] {
             for j:= 0; j < nCols; j++ {
-               if p >= pBorders[j] && e < pBorders[j+1] {
+               if p >= pBorders[j] && p < pBorders[j+1] {
                   probabilities[i][j] += 1 / float64(len(b.IndexBounded))
-                  // if b.LogLevel == "debug" {
-                     // fmt.Println("lower < period < upper", pBorders[j]/24.0/3600.0, p/24.0/3600.0, pBorders[j+1]/24.0/3600.0)
-                     // fmt.Println("lower < eccentricity < upper", eBorders[i], e, eBorders[i+1])
-                  // }
+                  if b.LogLevel == "debug" {
+                     fmt.Printf("lower < period < upper: %.2e, %.2e, %.2e\n", pBorders[j]/24.0/3600.0, p/24.0/3600.0, pBorders[j+1]/24.0/3600.0)
+                     fmt.Printf("lower < eccentricity < upper: %.2e, %.2e, %.2e\n\n", eBorders[i], e, eBorders[i+1])
+                  }
                }
             }
          }
@@ -295,12 +295,9 @@ func (b *Binary) GridOfOrbits () {
    // some more output for debugging mode
    if b.LogLevel == "debug" {
       for i := 0; i < nRows; i++ {
-         fmt.Println("row, probability row:", i, probabilities[i])
+         fmt.Printf("row, probability row: %d, %.2e\n", i, probabilities[i])
       }
    }
-
-   fmt.Println("stop for now, the following code is not working properly")
-   return
 
    // now get values from grid that are above a minimum probability value
    for i := 0; i < nRows; i++ {
@@ -316,7 +313,7 @@ func (b *Binary) GridOfOrbits () {
    // output grid above probability minimum
    if b.LogLevel != "none" {
       fmt.Println("\nGrid of orbits above minimum probability")
-      fmt.Printf("  id      period   separation   eccentricity\n")
+      fmt.Println("  id      period   separation   eccentricity")
       last_index := 0
       for k, _ := range b.PeriodGrid {
          last_index = k

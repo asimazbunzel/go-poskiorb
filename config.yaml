@@ -1,0 +1,54 @@
+
+# Conditions pre supernova for the progenitor of J08408
+m1: 8.3525627823294126E+000
+m2: 3.2637938645139933E+001
+separation: 7.3604203503769526E+001
+period: 1.1424984631360623E+001
+
+# the mass of the compact object for J08408 is around 1.6 (NS)
+compact_object_mass: 1.6601196874643882E+000
+
+# Distributions used
+kick_distribution: "Maxwell"
+kick_direction: "Uniform"
+
+# whether to multiply kick strength by (1 - fallback fraction)
+reduce_by_fallback: True
+
+# limits on the kick distribution
+kick_sigma: 265.0
+min_kick_value: 0.0
+max_kick_value: 500.0
+
+min_phi: 0.0
+max_phi: 2.0
+
+# seed
+seed: 1000
+
+# number of random draws
+number_of_cases: 10000
+
+# control output to terminal
+# options are: none (no output), info (some output), debug (debug output)
+log_level: "debug"
+
+# filename of different files than can be saved
+save_kicks: true
+kicks_filename: "kicks.data"
+
+save_bounded_orbits: true
+bounded_orbits_filename: "orbits.data"
+
+save_grid_of_orbits: true
+grid_of_orbits_filename: "grid.data"
+
+# info needed for creation of grid of orbits
+# most likely, there is no need to change this
+period_quantile_min: 0.05
+period_quantile_max: 0.95
+eccentricity_quantile_min: 0.00
+eccentricity_quantile_max: 1.00
+number_of_periods: 25
+number_of_eccentricities: 10
+minimum_probability_for_grid: 0.01

@@ -2,7 +2,7 @@ package orbits
 
 import (
 	"fmt"
-	"go-orbits/pkg/io"
+	"github.com/asimazbunzel/go-orbits/pkg/io"
 	"math"
 	"sort"
 	"strconv"

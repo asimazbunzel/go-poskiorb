@@ -4,8 +4,8 @@ package main
 import (
 	"flag"
 
-	"go-orbits/pkg/io"
-	"go-orbits/pkg/orbits"
+	"github.com/asimazbunzel/go-orbits/pkg/io"
+	"github.com/asimazbunzel/go-orbits/pkg/orbits"
 )
 
 func main () {

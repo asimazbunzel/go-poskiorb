@@ -6,7 +6,7 @@ import (
    "strconv"
 	"io/ioutil"
 	
-   "go-orbits/pkg/io"
+   "github.com/asimazbunzel/go-orbits/pkg/io"
 
 	"gopkg.in/yaml.v3"
 )

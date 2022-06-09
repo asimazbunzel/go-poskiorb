@@ -4,7 +4,7 @@ package orbits
 import (
 	"math"
 	
-   "go-orbits/pkg/io"
+   "github.com/asimazbunzel/go-orbits/pkg/io"
 )
 
 

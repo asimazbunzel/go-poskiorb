@@ -55,9 +55,9 @@ func (b *Binary) SaveKicks (filename string) {
    // write rows of different natal kicks
    for k, w := range b.W {
       str := fmt.Sprintf("%20s", strconv.Itoa(k))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(w, 'f', 5, 64))
-      str += fmt.Sprintf("%20s",strconv.FormatFloat(b.Theta[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s\n",strconv.FormatFloat(b.Phi[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(w, 'E', 5, 64))
+      str += fmt.Sprintf("%20s",strconv.FormatFloat(b.Theta[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s\n",strconv.FormatFloat(b.Phi[k], 'E', 5, 64))
       _, err := f.WriteString(str)
       if err != nil {
          io.LogError("ORBITS - orbits.go - SaveKicks", "error writing info to file")
@@ -100,12 +100,12 @@ func (b *Binary) SaveBoundedOrbits (filename string) {
    // write rows of different natal kicks
    for k, kb := range b.IndexBounded {
       str := fmt.Sprintf("%20s", strconv.Itoa(kb))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.WBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.ThetaBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PhiBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PeriodBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s",  strconv.FormatFloat(b.SeparationBounded[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s\n",  strconv.FormatFloat(b.EccentricityBounded[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.WBounded[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.ThetaBounded[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PhiBounded[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PeriodBounded[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s",  strconv.FormatFloat(b.SeparationBounded[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s\n",  strconv.FormatFloat(b.EccentricityBounded[k], 'E', 5, 64))
       _, err := f.WriteString(str)
       if err != nil {
          io.LogError("ORBITS - orbits.go - SaveBoundedOrbits", "error writing info to file")
@@ -146,10 +146,10 @@ func (b *Binary) SaveGridOrbits (filename string) {
    // write info to file
    for k, _ := range b.PeriodGrid {
       str := fmt.Sprintf("%20s", strconv.Itoa(k))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PeriodGrid[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.SeparationGrid[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.EccentricityGrid[k], 'f', 5, 64))
-      str += fmt.Sprintf("%20s\n", strconv.FormatFloat(b.ProbabilityGrid[k], 'f', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.PeriodGrid[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.SeparationGrid[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s", strconv.FormatFloat(b.EccentricityGrid[k], 'E', 5, 64))
+      str += fmt.Sprintf("%20s\n", strconv.FormatFloat(b.ProbabilityGrid[k], 'E', 5, 64))
       _, err := f.WriteString(str)
       if err != nil {
          io.LogError("ORBITS - orbits.go - SaveGridOrbits", "error writing info to file")

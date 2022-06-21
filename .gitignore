@@ -1,0 +1,12 @@
+# mod file not needed.
+*.mod
+
+# .sum file also not needed
+*.sum
+
+# test stuff and saved data
+test/
+**/*.data
+
+# bin folder where binary is created
+bin/

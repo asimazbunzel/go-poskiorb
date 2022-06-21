@@ -14,6 +14,7 @@ kick_direction: "Uniform"
 
 # whether to multiply kick strength by (1 - fallback fraction)
 reduce_by_fallback: True
+fallback_fraction: 9.3228051400652684E-002
 
 # limits on the kick distribution
 kick_sigma: 265.0

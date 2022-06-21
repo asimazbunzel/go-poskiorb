@@ -23,7 +23,9 @@ type Binary struct {
 
    KickStrengthDistribution string `yaml:"kick_distribution"`
    KickDirection string `yaml:"kick_direction"`
+
    ReduceByFallback bool `yaml:"reduce_by_fallback"`
+   FallbackFraction float64 `yaml:"fallback_fraction"`
 
    SigmaStrength float64 `yaml:"kick_sigma"`
    MinKickStrength float64 `yaml:"min_kick_value"`
@@ -110,13 +112,17 @@ func (b *Binary) ComputeKicks () {
       // normalization constant
       maxwell := distuv.ChiSquared{3, src}
       for k := 0; k < b.NumberOfCases; k++ {
-         b.W = append(b.W, b.SigmaStrength * math.Sqrt(maxwell.Rand()))
+         wTmp := b.SigmaStrength * math.Sqrt(maxwell.Rand())
+         if b.ReduceByFallback { wTmp *= (1.0 - b.FallbackFraction) }
+         b.W = append(b.W, wTmp)
       }
    } else if b.KickStrengthDistribution == "Uniform" {
       // Uniform distribution needs min & max values as input
       uniform := distuv.Uniform{b.MinKickStrength, b.MaxKickStrength, src}
       for k := 0; k < b.NumberOfCases; k++ {
-         b.W = append(b.W, uniform.Rand())
+         wTmp := uniform.Rand()
+         if b.ReduceByFallback { wTmp *= (1.0 - b.FallbackFraction) }
+         b.W = append(b.W, wTmp)
       }
    } else {
       io.LogError("ORBITS - orbits.go - ComputeKicks", "unknown KickStrengthDistribution")

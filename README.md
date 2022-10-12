@@ -5,7 +5,7 @@ momentum conservation as presented in Kalogera et al. 1996 and Kalogera 2000
 
 ## Installation
 
-The code is written purely in Go so in order the installation is done using the `go` command.
+The code is written purely in Go so its installation requires `go` to be installed in your system.
 
 First, clone this code into your computer
 
